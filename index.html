@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>Report</title>
+<style>
+    .verticalText {transform: rotate(-90deg);}
+</style>
 </head>
 <body>
     <div id='login'>
@@ -14,55 +17,96 @@
             <input type='submit' value='Login'>
         </form>
     </div>
-    <div id='course'>Courses</div>
+    <div id='courses'>Courses</div>
     <div id='attendance'>Attendance</div>
-    <div id='grades'>Grades</div>
+    <div id='grades'>Grades
+        <table>
+            <thead>
+                <tr id='assignments'>
+                </tr>
+            </thead>
+            <tbody id='studentgrades'>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
-<!-- <script src="https://d3js.org/d3.v5.min.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
 <script>
     var token = '';
-    var grades = '';
+    var grades;
+    var courses;
+    var assignments;
 
     function getAttendance() {
 
     }
 
+    function getAssignments(enrollmentId) {
+        document.getElementById('assignments').innerHTML = '<th>Student</th>';
+        const url = 'https://bootcampspot.com/api/instructor/v1/assignments';
+        let request = new XMLHttpRequest();
+        request.open("POST", url, false);
+        request.setRequestHeader('Content-Type','application/json');
+        request.setRequestHeader('authToken',token);
+        request.send(JSON.stringify({enrollmentId:enrollmentId}));
+        assignments = JSON.parse(request.responseText);
+        assignments.calendarAssignments.forEach((row) => {
+            document.getElementById('assignments').innerHTML += `<th class='verticalText'>${row['title']}</th>`;
+        });
+    }
+
+    function insertGradeRow(student) {
+        document.getElementById('studentgrades').innerHTML += `<tr id='${student}'></tr>`;
+        document.getElementById(student).innerHTML = `<td>${student}</td>`;
+        assignments.calendarAssignments.forEach((row) => {
+            document.getElementById(student).innerHTML += `<td id='${student} ${row.title}'></td>`;
+        });
+    }
+
+    function insertGrade(row) {
+        if (!document.getElementById(row.studentName)) {
+            insertGradeRow(row.studentName);
+        }
+        document.getElementById(`${row.studentName} ${row.assignmentTitle}`).innerHTML = row.grade;
+    }
+
     function getGrades(courseId) {
+        document.getElementById('studentgrades').innerHTML = '';
         const url = 'https://bootcampspot.com/api/instructor/v1/grades';
-        var request = new XMLHttpRequest();
+        let request = new XMLHttpRequest();
         request.open("POST", url, false);
         request.setRequestHeader('Content-Type','application/json');
         request.setRequestHeader('authToken',token);
         request.send(JSON.stringify({courseId:courseId}));
-        grades = request.responseText;
+        grades = JSON.parse(request.responseText);
+        grades.forEach(insertGrade);
     }
 
-    function update(courseId) {
+    function update(courseId, enrollmentId) {
         document.getElementById('attendance').innerHTML = 'Attendance';
         getAttendance(courseId);
-        document.getElementById('grades').innerHTML = 'Grades';
+        getAssignments(enrollmentId);
         getGrades(courseId);
     }
 
-    function insertCourses(row) {
-        document.getElementById('course').innerHTML += `<p>${row['courseId']}</p>`
-    }
-
     function getCourses() {
+        document.getElementById('courses').innerHTML = 'Courses';
         const url = 'https://bootcampspot.com/api/instructor/v1/me';
-        var request = new XMLHttpRequest();
+        let request = new XMLHttpRequest();
         request.open("GET", url, false);
         request.setRequestHeader('Content-Type','application/json');
         request.setRequestHeader('authToken',token);
         request.send();
-        JSON.parse(request.responseText).enrollments.forEach(insertCourses);
+        JSON.parse(request.responseText).enrollments.forEach((row) => {
+            document.getElementById('courses').innerHTML += `<p onclick='update(${row['courseId']},${row['id']})'>${row.course['name']}</p>`;
+        });
+        courses = JSON.parse(request.responseText);
     }
 
     function login(event) {
+        event.preventDefault();
         const url = 'https://bootcampspot.com/api/instructor/v1/login';
-        var request = new XMLHttpRequest();
+        let request = new XMLHttpRequest();
         request.open("POST", url, false);
         request.setRequestHeader('Content-Type','application/json');
         request.send(JSON.stringify({
