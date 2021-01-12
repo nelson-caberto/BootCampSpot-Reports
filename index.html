@@ -97,7 +97,7 @@
         request.setRequestHeader('Content-Type','application/json');
         request.setRequestHeader('authToken',token);
         request.send();
-        JSON.parse(request.responseText).enrollments.forEach((row) => {
+        JSON.parse(request.responseText).Enrollments.forEach((row) => {
             document.getElementById('courses').innerHTML += `<p onclick='update(${row['courseId']},${row['id']})'>${row.course['name']}</p>`;
         });
         courses = JSON.parse(request.responseText);
